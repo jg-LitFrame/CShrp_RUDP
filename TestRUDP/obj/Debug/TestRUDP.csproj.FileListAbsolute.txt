@@ -1,0 +1,8 @@
+F:\WorkSpace\Owner_WS\RUDP\TestRUDP\bin\Debug\TestRUDP.exe.config
+F:\WorkSpace\Owner_WS\RUDP\TestRUDP\obj\Debug\TestRUDP.csprojResolveAssemblyReference.cache
+F:\WorkSpace\Owner_WS\RUDP\TestRUDP\bin\Debug\TestRUDP.exe
+F:\WorkSpace\Owner_WS\RUDP\TestRUDP\bin\Debug\TestRUDP.pdb
+F:\WorkSpace\Owner_WS\RUDP\TestRUDP\bin\Debug\RUDPCore.dll
+F:\WorkSpace\Owner_WS\RUDP\TestRUDP\bin\Debug\RUDPCore.pdb
+F:\WorkSpace\Owner_WS\RUDP\TestRUDP\obj\Debug\TestRUDP.exe
+F:\WorkSpace\Owner_WS\RUDP\TestRUDP\obj\Debug\TestRUDP.pdb

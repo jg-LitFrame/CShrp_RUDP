@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.40629.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RUDPCore", "RUDPCore.csproj", "{C565B4DC-F843-4625-8525-EDAC02A71D48}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestRUDP", "..\TestRUDP\TestRUDP.csproj", "{A849C962-F2CD-4F0C-A446-402B3699C5F3}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C565B4DC-F843-4625-8525-EDAC02A71D48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C565B4DC-F843-4625-8525-EDAC02A71D48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C565B4DC-F843-4625-8525-EDAC02A71D48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C565B4DC-F843-4625-8525-EDAC02A71D48}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A849C962-F2CD-4F0C-A446-402B3699C5F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A849C962-F2CD-4F0C-A446-402B3699C5F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A849C962-F2CD-4F0C-A446-402B3699C5F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A849C962-F2CD-4F0C-A446-402B3699C5F3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
