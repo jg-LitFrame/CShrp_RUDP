@@ -7,7 +7,8 @@ namespace TestRUDP
     {
         static void Main(string[] args)
         {
-            new TestCommonTrans().Test();
+            // new TestCommonTrans().Test();
+            new TestNetPacket().Run();
         }
     }
 }

@@ -11,18 +11,17 @@ namespace RUDPCore
         public delegate void MsgOverFlowHandler();
 
         public RecvDataHandler OnRecvData;
-        public MsgOverFlowHandler OnSendQueueOverFlow();
+        public MsgOverFlowHandler OnSendQueueOverFlow;
         #endregion
 
         #region 属性
         public int maxSendQueue = 256;
         public int maxWaitQueue = 256;
 
-
         public int MTU = 1400;
         public int maxRTO = 100;
-        public UInt32 maxBuffLeght = 1024;
-        public UInt32 maxRecvQueueLength = 1024;
+        public int maxBuffLeght = 1024;
+        public int maxRecvQueueLength = 1024;
 
         private Socket socket;
         private EndPoint remoteEP;
@@ -40,17 +39,17 @@ namespace RUDPCore
         /// <summary>
         /// 已发送但未确认队列
         /// </summary>
-        private Queue<NetPacket> waitAckQueue;
+    //    private Queue<NetPacket> waitAckQueue;
 
         
         /// <summary>
         /// 当前收到包的最大帧号
         /// </summary>
-        private UInt16 CurRecvNum;
+//private UInt16 CurRecvNum;
         /// <summary>
         /// 收包缓存，其中包不保证顺序
         /// </summary>
-        private List<NetPacket> recvBuff;
+      //  private List<NetPacket> recvBuff;
         /// <summary>
         /// 已确认的包
         /// </summary>
@@ -89,8 +88,7 @@ namespace RUDPCore
         }
         #endregion
 
-
-
+        #region 可靠UDP
         public void Send(byte[] data, PacketType msgType = PacketType.Reliable)
         {
             if (!isRunning || data == null || data.Length <= 0)
@@ -142,11 +140,12 @@ namespace RUDPCore
             msgPacket.Type = PacketType.Reliable;
             CurSendMsgNum = NextPacketNum;
             msgPacket.MsgNum = CurSendMsgNum;
-            msgPacket.Legth = rawData.Length;
+            msgPacket.Legth = (UInt16)rawData.Length;
             msgPacket.Piece = (UInt16)piece;
             msgPacket.SetData(rawData, offset, len);
             return msgPacket;
         }
+        #endregion
 
         public void Tick()
         {
@@ -208,12 +207,15 @@ namespace RUDPCore
         }
 
         #endregion
+
+        #region 关闭
         public void Close()
         {
             isRunning = false;
             if (socket != null)
                 socket.Close();
         }
+        #endregion
 
     }
 }

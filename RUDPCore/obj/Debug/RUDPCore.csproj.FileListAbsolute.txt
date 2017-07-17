@@ -3,3 +3,8 @@ F:\WorkSpace\Owner_WS\RUDP\RUDPCore\bin\Debug\RUDPCore.dll
 F:\WorkSpace\Owner_WS\RUDP\RUDPCore\bin\Debug\RUDPCore.pdb
 F:\WorkSpace\Owner_WS\RUDP\RUDPCore\obj\Debug\RUDPCore.dll
 F:\WorkSpace\Owner_WS\RUDP\RUDPCore\obj\Debug\RUDPCore.pdb
+E:\WorkSpace\Owner_WS\RUDP\RUDPCore\obj\Debug\RUDPCore.csprojResolveAssemblyReference.cache
+E:\WorkSpace\Owner_WS\RUDP\RUDPCore\obj\Debug\RUDPCore.dll
+E:\WorkSpace\Owner_WS\RUDP\RUDPCore\obj\Debug\RUDPCore.pdb
+E:\WorkSpace\Owner_WS\RUDP\RUDPCore\bin\Debug\RUDPCore.dll
+E:\WorkSpace\Owner_WS\RUDP\RUDPCore\bin\Debug\RUDPCore.pdb
