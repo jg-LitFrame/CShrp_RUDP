@@ -78,6 +78,16 @@ namespace RUDPCore
             return arr;
         }
 
+        public static NetPacket DeserializeNetPacket(byte[] data, int offet, int len){
+            return null;
+        }
+
+
+        public static bool CheckCRC(byte[] data, int offet, int len) 
+        {
+            
+        }
+
 
         public static byte[] StrToBytes(string info)
         {

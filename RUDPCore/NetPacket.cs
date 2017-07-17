@@ -11,6 +11,7 @@ namespace RUDPCore
     {
         Unreliable = 0,
         Reliable = 1,
+        AckMsg = 2,
     }
 
     /**

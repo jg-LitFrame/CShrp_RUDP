@@ -15,6 +15,9 @@ namespace RUDPCore
         #endregion
 
         #region 属性
+        public const UInt16 SESSION = 1024;
+        public const byte PROTOCOL = 128;
+
         public int maxSendQueue = 256;
         public int maxWaitQueue = 256;
 
@@ -39,17 +42,17 @@ namespace RUDPCore
         /// <summary>
         /// 已发送但未确认队列
         /// </summary>
-    //    private Queue<NetPacket> waitAckQueue;
+        private Queue<NetPacket> waitAckQueue;
 
         
         /// <summary>
         /// 当前收到包的最大帧号
         /// </summary>
-//private UInt16 CurRecvNum;
+        private UInt16 CurRecvNum;
         /// <summary>
         /// 收包缓存，其中包不保证顺序
         /// </summary>
-      //  private List<NetPacket> recvBuff;
+        private List<NetPacket> recvBuff;
         /// <summary>
         /// 已确认的包
         /// </summary>
@@ -59,6 +62,10 @@ namespace RUDPCore
         private UInt16 NextPacketNum
         {
             get { return (UInt16)(CurSendMsgNum + 1); }
+        }
+        private UInt16 DesireNextMsgNum
+        {
+            get { return (UInt16)(CurRecvNum + 1); }
         }
         #endregion
 
@@ -127,21 +134,24 @@ namespace RUDPCore
             for (int i = 1; i <= piece && curOffset < rawData.Length; i++)
             {
                 var len = Math.Min(MTU, rawData.Length - curOffset);
-                var msg = PackMsg(rawData, curOffset, len, piece);
+                var msg = PackMsg(PacketType.Reliable, rawData, curOffset, len, piece - i + 1);
                 sendQueue.Enqueue(msg);
 
                 curOffset += len;
             }
         }
 
-        private NetPacket PackMsg(byte[] rawData,int offset, int len, int piece)
+        private NetPacket PackMsg(PacketType type, byte[] rawData,
+            int offset, int len, int piece)
         {
             var msgPacket = NetPacket.Create();
-            msgPacket.Type = PacketType.Reliable;
+            msgPacket.Type = type;
             CurSendMsgNum = NextPacketNum;
             msgPacket.MsgNum = CurSendMsgNum;
             msgPacket.Legth = (UInt16)rawData.Length;
             msgPacket.Piece = (UInt16)piece;
+            msgPacket.Session = SESSION;
+            msgPacket.ACK = DesireNextMsgNum;
             msgPacket.SetData(rawData, offset, len);
             return msgPacket;
         }
@@ -170,6 +180,7 @@ namespace RUDPCore
                 var msg = sendQueue.Dequeue();
                 var data = msg.Serialize();
                 SendData(data);
+                waitAckQueue.Enqueue(msg);
             }
         }
 
@@ -190,7 +201,7 @@ namespace RUDPCore
             int len = socket.ReceiveFrom(buff,0,availableLen,SocketFlags.None,ref remoteEP);
             var recvPackage = NetPacket.Create();
             recvPackage.Deserialize(buff, 0, len);
-            recvQueue.Enqueue(recvPackage);
+            recvBuff.Add(recvPackage);
        
         }
         private void HandleRecvQueue()
