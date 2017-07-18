@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 namespace RUDPCore
@@ -9,14 +10,18 @@ namespace RUDPCore
         #region 各种回调
         public delegate void  RecvDataHandler(byte[] data);
         public delegate void MsgOverFlowHandler();
+        public delegate void RecvException(Exception e);
 
         public RecvDataHandler OnRecvData;
         public MsgOverFlowHandler OnSendQueueOverFlow;
+        public RecvException OnReceptionError;
+        public RecvDataHandler OnRecvIllegalData;
         #endregion
 
         #region 属性
         public const UInt16 SESSION = 1024;
         public const byte PROTOCOL = 128;
+        public const int CRC_OFFSET = 3;
 
         public int maxSendQueue = 256;
         public int maxWaitQueue = 256;
@@ -194,16 +199,85 @@ namespace RUDPCore
         #region 接收
         private void TryRecvData()
         {
-            int availableLen = socket.Available;
-            if (availableLen <= 0)
+            try
+            {
+                int availableLen = socket.Available;
+                if (availableLen <= 0)
+                    return;
+                var buff = new byte[availableLen];
+                int len = socket.ReceiveFrom(buff, 0, availableLen, SocketFlags.None, ref remoteEP);
+                HandleRecvData(buff, 0, len);
+            }
+            catch(Exception e)
+            {
+                //所有异常和错误操作均走回调通知
+                OnReceptionError(e);
+            }
+    
+        }
+
+        private void HandleRecvData(byte[] buff, int offset, int len)
+        {
+            if (!CheckMsg(buff, offset, len))
+            {
+                if (OnRecvIllegalData != null)
+                    OnRecvIllegalData(buff);
                 return;
-            var buff = new byte[availableLen];
-            int len = socket.ReceiveFrom(buff,0,availableLen,SocketFlags.None,ref remoteEP);
+            }
             var recvPackage = NetPacket.Create();
             recvPackage.Deserialize(buff, 0, len);
-            recvBuff.Add(recvPackage);
-       
+            switch (recvPackage.Type)
+            {
+                case PacketType.AckMsg:
+                    RecvAckMsg(recvPackage);
+                    break;
+                case PacketType.Reliable:
+                    RecvReliableMsg(recvPackage);
+                    break;
+                case PacketType.Unreliable:
+                    RecvUnReliableMsg(recvPackage);
+                    break;
+                default:
+                    RecvUnknowMsg(recvPackage);
+                    break;
+            }
         }
+
+        public bool CheckMsg(byte[] data, int offset, int len)
+        {
+            //协议检查
+            var br = new BinaryReader(new MemoryStream(data, offset, len - offset));
+            byte protocol = br.ReadByte();
+            bool isProtocol = PROTOCOL == protocol;
+            if (!isProtocol)
+                return isProtocol;
+
+            //CRC检查
+            int crcOffset = offset + CRC_OFFSET;
+            UInt16 _crc = RSocketUtils.CalcCrc16(data, crcOffset, len - CRC_OFFSET);
+            var msgCRC = br.ReadUInt16();
+            bool isCRC = msgCRC == _crc;
+
+            return isCRC;
+        }
+
+        public void RecvAckMsg(NetPacket msg)
+        {
+
+        }
+        public void RecvReliableMsg(NetPacket msg)
+        {
+
+        }
+        public void RecvUnReliableMsg(NetPacket msg)
+        {
+
+        }
+        public void RecvUnknowMsg(NetPacket msg)
+        {
+
+        }
+
         private void HandleRecvQueue()
         {
             while(recvQueue.Count > 0)
@@ -217,6 +291,7 @@ namespace RUDPCore
             }
         }
 
+ 
         #endregion
 
         #region 关闭

@@ -83,10 +83,7 @@ namespace RUDPCore
         }
 
 
-        public static bool CheckCRC(byte[] data, int offet, int len) 
-        {
-            
-        }
+
 
 
         public static byte[] StrToBytes(string info)
