@@ -10,7 +10,7 @@ namespace RUDPCore
         #region 各种回调
         public enum QueuOverflowType
         {
-            SendQueue,RecvBuff,
+            SendQueue,RecvBuff,RecvPieces,
         }
         public delegate void  RecvDataHandler(byte[] data);
         public delegate void MsgOverFlowHandler(QueuOverflowType type);
@@ -18,7 +18,7 @@ namespace RUDPCore
 
         public RecvDataHandler OnRecvData;
         public MsgOverFlowHandler OnQueueOverFlow;
-        public RecvException OnReceptionError;
+        public RecvException OnExceptionError;
         public RecvDataHandler OnRecvIllegalData;
         #endregion
 
@@ -34,6 +34,8 @@ namespace RUDPCore
         public int maxRTO = 100;
         public int maxRecvBuffLeght = 1024;
         public int maxRecvQueueLength = 1024;
+
+        public int maxRecvPiecesBuffLeght = 1024;
 
         private Socket socket;
         private EndPoint remoteEP;
@@ -138,7 +140,7 @@ namespace RUDPCore
             else
             {
                 //发送队列溢出
-                OnQueueOverFlow(QueuOverflowType.SendQueue);
+                TrrigerOverFlowQueue(QueuOverflowType.SendQueue);
             }
         }
 
@@ -159,24 +161,7 @@ namespace RUDPCore
                 curOffset += len;
             }
         }
-        /// <summary>
-        /// Piece == 0 : 不需要分片的包
-        /// Piece >= 1 : 分片包中处于第几个分片,其中1表示最后一个分片
-        /// </summary>
-        private NetPacket PackMsg(PacketType type, byte[] rawData,
-            int offset, int len, int piece)
-        {
-            var msgPacket = NetPacket.Create();
-            msgPacket.Type = type;
-            CurSendMsgNum = NextPacketNum;
-            msgPacket.MsgNum = CurSendMsgNum;
-            msgPacket.Legth = (UInt16)rawData.Length;
-            msgPacket.Piece = (UInt16)piece;
-            msgPacket.Session = SESSION;
-            msgPacket.ACK = DesireNextMsgNum;
-            msgPacket.SetData(rawData, offset, len);
-            return msgPacket;
-        }
+ 
         #endregion
 
         public void Tick()
@@ -213,7 +198,7 @@ namespace RUDPCore
 
         #endregion
 
-        #region 接收
+        #region 收包
         private void TryRecvData()
         {
             try
@@ -228,7 +213,8 @@ namespace RUDPCore
             catch(Exception e)
             {
                 //All Error and Exception will trigger this callback func
-                OnReceptionError(e);
+                if(OnExceptionError != null)
+                    OnExceptionError(e);
             }
     
         }
@@ -277,7 +263,6 @@ namespace RUDPCore
 
             //Repeat Check
 
-
             return isCRC;
         }
 
@@ -293,6 +278,7 @@ namespace RUDPCore
             }
             msg.GC();
         }
+
         /// <summary>
         /// recv reliable msg
         /// 1.判断分片
@@ -312,8 +298,9 @@ namespace RUDPCore
             {
                 TryRecvPiecePacket(msg);
             }
+            SendAckMsg();
         }
-
+ 
 
         private void RecvSingleReliablePacket(NetPacket msg)
         {
@@ -328,10 +315,11 @@ namespace RUDPCore
                 if (recvBuff.Count < maxRecvBuffLeght)
                     recvBuff.Add(msg);
                 else
-                    OnQueueOverFlow(QueuOverflowType.RecvBuff);
+                    TrrigerOverFlowQueue(QueuOverflowType.RecvBuff);
             }
         }
 
+        #region 处理分片的包
         private void TryRecvPiecePacket(NetPacket msg)
         {
             if (isExpectRecvMsgNum(msg.MsgNum))
@@ -342,16 +330,53 @@ namespace RUDPCore
             else
             {
                 //乱序分片包
-                recvPiecesBuff.Add(msg);
+                if (recvPiecesBuff.Count < maxRecvPiecesBuffLeght)
+                    recvPiecesBuff.Add(msg);
+                else
+                    TrrigerOverFlowQueue(QueuOverflowType.RecvPieces);
             }
         }
 
         private void TryMergePiecePacket()
         {
-            
+            int curNumIndex = getMsgNumPacketByPieceQeue(CurRecvNum);
+            if (curNumIndex < 0)
+                return;
+            int nextNumIndex = getMsgNumPacketByPieceQeue(DesireNextMsgNum);
+            if (nextNumIndex < 0)
+                return;
+            var curPacket = recvPiecesBuff[curNumIndex];
+            var nextPacket = recvPiecesBuff[nextNumIndex];
+            curPacket.Append(nextPacket);
+            CurRecvNum = DesireNextMsgNum;
+            curPacket.MsgNum = CurRecvNum;
+            curPacket.Piece--;
+            RSocketUtils.ListRemoveAt<NetPacket>(recvPiecesBuff, nextNumIndex);
+            nextPacket.GC();
+
+            if (curPacket.Piece <= 1)
+            {
+                recvQueue.Enqueue(curPacket);
+                RSocketUtils.ListRemoveAt<NetPacket>(recvPiecesBuff, CurRecvNum);
+                curPacket.GC();
+                return;
+            }
+            TryMergePiecePacket();
         }
 
-    
+        private int getMsgNumPacketByPieceQeue(UInt16 msgNum)
+        {
+            int index = -1;
+            for (int i = 0; i < recvPiecesBuff.Count; i++)
+            {
+                if(recvPiecesBuff[i] != null && recvPiecesBuff[i].MsgNum == msgNum)
+                {
+                    index = i;
+                    break;
+                }
+            }
+            return index;
+        }
 
         private void CheckBuffQueue()
         {
@@ -372,25 +397,30 @@ namespace RUDPCore
                 CheckBuffQueue();
             }
         }
+        #endregion
 
-        private bool isExpectRecvMsgNum(UInt16 seq)
+        // 发送确认信息
+        private void SendAckMsg()
         {
-            return Math.Abs(seq - CurRecvNum) % UInt16.MaxValue == 1;
+            var ackPacket = PackMsg(PacketType.AckMsg, null, 0, 0, 0);
+            SendData(ackPacket.Serialize());
         }
 
-
-        //Recv common UDP packet,no need send ack msg
+        //收到普通UDP包,不需要回确认信息
         private void RecvUnReliableMsg(NetPacket msg)
         {
             if (msg == null || msg.Type != PacketType.Unreliable)
                 return;
-            OnRecvData(msg.GetData());
-            msg.GC();
+            recvQueue.Enqueue(msg);
         }
+
+        //TODO 未知信息
         private void RecvUnknowMsg(NetPacket msg)
         {
             throw new RSocketException(msg.ToString());
         }
+        #endregion
+
 
         private void HandleRecvQueue()
         {
@@ -401,11 +431,50 @@ namespace RUDPCore
                 if (OnRecvData != null)
                 {
                     OnRecvData(data);
+                    msg.GC();
                 }
             }
         }
 
+       
+
+        #region Common Func
+        /// <summary>
+        /// Piece == 0 : 不需要分片的包
+        /// Piece >= 1 : 分片包中处于第几个分片,其中1表示最后一个分片
+        /// </summary>
+        private NetPacket PackMsg(PacketType type, byte[] rawData,
+            int offset, int len, int piece)
+        {
+            var msgPacket = NetPacket.Create();
+            msgPacket.Type = type;
+            CurSendMsgNum = NextPacketNum;
+            msgPacket.MsgNum = CurSendMsgNum;
+            msgPacket.Legth = (UInt16)rawData.Length;
+            msgPacket.Piece = (UInt16)piece;
+            msgPacket.Session = SESSION;
+            msgPacket.ACK = DesireNextMsgNum;
+            msgPacket.SetData(rawData, offset, len);
+            return msgPacket;
+        }
+
+        private bool isExpectRecvMsgNum(UInt16 seq)
+        {
+            return Math.Abs(seq - CurRecvNum) % UInt16.MaxValue == 1;
+        }
         #endregion
+
+
+        #region Trigger CallBack
+        private void TrrigerOverFlowQueue(QueuOverflowType type)
+        {
+            if (OnQueueOverFlow != null)
+                OnQueueOverFlow(type);
+        }
+
+        #endregion
+
+
 
         #region 关闭
         public void Close()
