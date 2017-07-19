@@ -60,7 +60,8 @@ namespace RUDPCore
         }
         public override string ToString()
         {
-            return string.Format("Protcol = {0}, CRC = {1}, Session = {2}, Type = {3}, MsgNum = {4}, ACK = {5}, Piece = {6}, Legth = {7}", Protcol, CRC, Session, Type, MsgNum,ACK, Piece, Legth);
+            return string.Format("Protcol = {0}, CRC = {1}, Session = {2}, Type = {3}, MsgNum = {4}, ACK = {5}, Piece = {6}, Legth = {7}",
+                Protcol, CRC, Session, Type, MsgNum,ACK, Piece, Legth);
         }
    
 
@@ -69,6 +70,7 @@ namespace RUDPCore
 
         }
 
+        #region 序列化相关操作
         public byte[] Serialize()
         {
             int totalLen = Legth + RUDP_HEADER_LENGTH;
@@ -117,10 +119,16 @@ namespace RUDPCore
 
             br.Close();
         }
+        #endregion
 
         public static NetPacket Create()
         {
             return new NetPacket();
+        }
+
+        internal void GC()
+        {
+            throw new NotImplementedException();
         }
     }
 }

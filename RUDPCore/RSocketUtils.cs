@@ -79,13 +79,19 @@ namespace RUDPCore
         }
 
         public static NetPacket DeserializeNetPacket(byte[] data, int offet, int len){
-            return null;
+            var packet = NetPacket.Create();
+            packet.Deserialize(data);
+            return packet;
         }
 
+        public static void ListRemoveAt<T>(List<T> list, int index)
+        {
+            T last = list[list.Count - 1];
+            list[index] = last;
+            list.RemoveAt(list.Count - 1);
+        }
 
-
-
-
+        #region 仅为测试方便
         public static byte[] StrToBytes(string info)
         {
             return System.Text.Encoding.Default.GetBytes(info);
@@ -94,5 +100,6 @@ namespace RUDPCore
         {
             return System.Text.Encoding.Default.GetString(bs);
         }
+        #endregion
     }
 }
